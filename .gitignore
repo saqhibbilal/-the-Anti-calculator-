@@ -35,3 +35,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+TESTING_GUIDE.md
+GITHUB_SETUP.md

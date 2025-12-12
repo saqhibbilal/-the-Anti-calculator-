@@ -28,8 +28,8 @@ export default function ChatInterface({ scenario }: ChatInterfaceProps) {
     {
       role: 'assistant',
       content: scenario === 'buy-vs-rent' 
-        ? "Hi! I'm here to help you decide whether buying or renting makes more sense for your situation. What would you like to know?"
-        : "Hi! I'm here to help you evaluate if refinancing your mortgage is worth it. Tell me about your current situation."
+        ? "Marhaba! 👋 Welcome to your friendly neighborhood property advisor (minus the awkward small talk at the coffee shop).\n\nI'm here to help you figure out whether buying or renting makes more sense for your situation. Think of me as that friend who actually understands mortgages and won't judge you for asking 'dumb' questions.\n\nSo, what's on your mind? Are you eyeing a place in Dubai Marina? Thinking about JLT? Or just curious if your salary can handle that dream apartment? Tell me what you're working with!"
+        : "Marhaba! 👋 Ready to see if refinancing your mortgage is actually worth the hassle (and those pesky switching fees)?\n\nI'm here to do the math so you don't have to. No judgment, no sales pitch—just honest numbers about whether switching will save you money or just give you a headache.\n\nWhat's your current situation? Let's see if refinancing makes sense for you!"
     }
   ])
   const [input, setInput] = useState('')
