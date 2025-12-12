@@ -24,6 +24,21 @@ function getSessionId(): string {
   return sessionId
 }
 
+const DEMO_PROMPTS = {
+  'buy-vs-rent': [
+    'I want to buy a 2,000,000 AED place in Dubai Marina. I have 500k down payment. Staying 6 years. Rent today is 8,000.',
+    'I make 20k a month, can I afford a property in Dubai Marina?',
+    'Property price 1.5M AED, down payment 300k, rent 6,500 AED, staying 4 years. Should I buy or rent?',
+    'I have 400k saved. What can I afford in Dubai?',
+  ],
+  'refinance-check': [
+    'Current loan 1,200,000 AED at 5% interest. I have 15 years left. A bank is offering me 4% interest but switching costs are 15,000 AED. Should I refinance?',
+    'Loan balance 900k, current rate 4.8%, 18 years left. Offer 4.1%, switching fees 10k. Worth it?',
+    'Outstanding 2M at 5.5%, 20 years remaining. New offer 4.2%, fees 25k. Is refinancing smart?',
+    'My mortgage is 1.5M at 5.2% with 12 years left. New rate 4.3%, costs 18k. Should I switch?',
+  ],
+}
+
 export default function ChatInterface({ scenario }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -36,6 +51,7 @@ export default function ChatInterface({ scenario }: ChatInterfaceProps) {
   ])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [showDemoPrompts, setShowDemoPrompts] = useState(true)
   const [sessionId] = useState(() => getSessionId())
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -49,12 +65,22 @@ export default function ChatInterface({ scenario }: ChatInterfaceProps) {
     scrollToBottom()
   }, [messages])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!input.trim() || isLoading) return
+  const handleDemoPrompt = (prompt: string) => {
+    setInput(prompt)
+    setShowDemoPrompts(false)
+    // Trigger submit
+    const fakeEvent = { preventDefault: () => {} } as React.FormEvent
+    handleSubmit(fakeEvent, prompt)
+  }
 
-    const userMessage = input.trim()
+  const handleSubmit = async (e: React.FormEvent, customMessage?: string) => {
+    e.preventDefault()
+    const messageToSend = customMessage || input.trim()
+    if (!messageToSend || isLoading) return
+
+    const userMessage = messageToSend.trim()
     setInput('')
+    setShowDemoPrompts(false)
     setMessages(prev => [...prev, { role: 'user', content: userMessage }])
     setIsLoading(true)
 
@@ -205,6 +231,24 @@ export default function ChatInterface({ scenario }: ChatInterfaceProps) {
         
         <div ref={messagesEndRef} />
       </div>
+
+      {/* Demo Prompts */}
+      {showDemoPrompts && messages.length === 1 && scenario && (
+        <div className="px-8 pb-4 max-w-4xl mx-auto w-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {DEMO_PROMPTS[scenario].map((prompt: string, index: number) => (
+              <button
+                key={index}
+                onClick={() => handleDemoPrompt(prompt)}
+                className="text-left px-4 py-3 bg-bg-secondary/10 border border-accent/20 hover:bg-bg-secondary/20 hover:border-accent/40 transition-all text-[14px] font-medium tracking-tight"
+                style={{ borderRadius: '0' }}
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Input */}
       <div className="sticky bottom-0 z-20 border-t border-accent/10 px-8 py-6 bg-bg-primary">
