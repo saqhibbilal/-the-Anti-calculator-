@@ -6,6 +6,7 @@ import { Scenario } from '@/app/page'
 interface Message {
   role: 'user' | 'assistant'
   content: string
+  toolUsed?: string
 }
 
 interface ChatInterfaceProps {
@@ -120,9 +121,10 @@ export default function ChatInterface({ scenario }: ChatInterfaceProps) {
                     updated[assistantMessageIndex] = {
                       ...updated[assistantMessageIndex],
                       content: updated[assistantMessageIndex].content + parsed.content,
+                      toolUsed: parsed.toolUsed ?? updated[assistantMessageIndex].toolUsed,
                     }
                   } else {
-                    updated.push({ role: 'assistant', content: parsed.content })
+                    updated.push({ role: 'assistant', content: parsed.content, toolUsed: parsed.toolUsed })
                   }
                   return updated
                 })
@@ -170,15 +172,21 @@ export default function ChatInterface({ scenario }: ChatInterfaceProps) {
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[85%] rounded-2xl px-6 py-4 ${
+              className={`max-w-[85%] px-6 py-4 ${
                 message.role === 'user'
                   ? 'bg-accent text-white'
                   : 'bg-bg-secondary text-bg-primary'
               }`}
+              style={{ borderRadius: '0' }}
             >
-              <p className="text-[15px] leading-relaxed whitespace-pre-wrap font-normal">
+              <p className="text-[15px] leading-relaxed whitespace-pre-wrap font-medium tracking-tight">
                 {message.content}
               </p>
+              {message.role === 'assistant' && message.toolUsed && (
+                <p className="mt-2 text-[11px] opacity-70">
+                  Used: {message.toolUsed}
+                </p>
+              )}
             </div>
           </div>
         ))}
@@ -217,14 +225,14 @@ export default function ChatInterface({ scenario }: ChatInterfaceProps) {
                 }
               }}
               placeholder="Type your message..."
-              className="flex-1 bg-bg-secondary/5 border border-accent/20 rounded-xl px-5 py-4 text-[#E4D4B2] placeholder-[#E4D4B2]/40 resize-none focus:outline-none focus:border-accent/40 focus:bg-bg-secondary/8 transition-all text-[15px] font-normal"
+              className="flex-1 bg-bg-secondary/5 border border-accent/20 px-5 py-4 text-[#E4D4B2] placeholder-[#E4D4B2]/40 resize-none focus:outline-none focus:border-accent/40 focus:bg-bg-secondary/8 transition-all text-[15px] font-medium tracking-tight"
               rows={1}
               disabled={isLoading}
             />
             <button
               type="submit"
               disabled={!input.trim() || isLoading}
-              className="px-8 py-4 bg-accent text-white rounded-xl font-semibold hover:bg-accent/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-[15px]"
+              className="px-8 py-4 bg-accent text-white font-semibold hover:bg-accent/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-[15px] tracking-tight"
             >
               Send
             </button>

@@ -175,6 +175,8 @@ export async function POST(request: NextRequest) {
           let fullResponse = ''
 
           // Check if we have tool calls
+          let lastToolUsed: string | undefined
+
           if (assistantMessage?.tool_calls && assistantMessage.tool_calls.length > 0) {
             // Add assistant message with tool calls first (correct ordering)
             state.messages.push({
@@ -188,6 +190,7 @@ export async function POST(request: NextRequest) {
               try {
                 const args = JSON.parse(toolCall.function.arguments)
                 const result = executeToolCall(toolCall.function.name, args, scenario)
+                lastToolUsed = toolCall.function.name
 
                 // Add tool result to messages
                 state.messages.push({
@@ -225,12 +228,12 @@ export async function POST(request: NextRequest) {
             if (finalResponse instanceof ReadableStream) {
               for await (const chunk of parseMistralStream(finalResponse)) {
                 fullResponse += chunk
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: chunk })}\n\n`))
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: chunk, toolUsed: lastToolUsed })}\n\n`))
               }
             } else {
               // Fallback to non-streaming
               fullResponse = finalResponse.choices[0]?.message?.content || ''
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: fullResponse })}\n\n`))
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: fullResponse, toolUsed: lastToolUsed })}\n\n`))
             }
           } else {
             // Regular response without tool calls - stream it
@@ -240,7 +243,7 @@ export async function POST(request: NextRequest) {
             // Stream the content character by character for smooth effect
             for (let i = 0; i < content.length; i += 10) {
               const chunk = content.slice(i, i + 10)
-              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: chunk })}\n\n`))
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: chunk, toolUsed: lastToolUsed })}\n\n`))
               // Small delay for smooth streaming effect
               await new Promise(resolve => setTimeout(resolve, 10))
             }
