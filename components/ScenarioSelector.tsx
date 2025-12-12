@@ -13,7 +13,7 @@ export default function ScenarioSelector({ onSelect }: ScenarioSelectorProps) {
         <h1 className="text-6xl font-bold text-center mb-20 tracking-tight text-[#E4D4B2]">
           ANTI - CALCULATOR
         </h1>
-        
+
         <div className="space-y-5">
           <button
             onClick={() => onSelect('buy-vs-rent')}

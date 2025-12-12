@@ -69,7 +69,7 @@ export default function ChatInterface({ scenario }: ChatInterfaceProps) {
     setInput(prompt)
     setShowDemoPrompts(false)
     // Trigger submit
-    const fakeEvent = { preventDefault: () => {} } as React.FormEvent
+    const fakeEvent = { preventDefault: () => { } } as React.FormEvent
     handleSubmit(fakeEvent, prompt)
   }
 
@@ -198,11 +198,10 @@ export default function ChatInterface({ scenario }: ChatInterfaceProps) {
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[85%] px-6 py-4 ${
-                message.role === 'user'
-                  ? 'bg-accent text-white'
-                  : 'bg-bg-secondary text-bg-primary'
-              }`}
+              className={`max-w-[85%] px-6 py-4 ${message.role === 'user'
+                ? 'bg-accent text-white'
+                : 'bg-bg-secondary text-bg-primary'
+                }`}
               style={{ borderRadius: '0' }}
             >
               <p className="text-[15px] leading-relaxed whitespace-pre-wrap font-medium tracking-tight">
@@ -216,7 +215,7 @@ export default function ChatInterface({ scenario }: ChatInterfaceProps) {
             </div>
           </div>
         ))}
-        
+
         {isLoading && (
           <div className="flex justify-start">
             <div className="bg-bg-secondary text-bg-primary rounded-2xl px-6 py-4">
@@ -228,7 +227,7 @@ export default function ChatInterface({ scenario }: ChatInterfaceProps) {
             </div>
           </div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
 
@@ -240,7 +239,7 @@ export default function ChatInterface({ scenario }: ChatInterfaceProps) {
               <button
                 key={index}
                 onClick={() => handleDemoPrompt(prompt)}
-                className="text-left px-4 py-3 bg-bg-secondary/10 border border-accent/20 hover:bg-bg-secondary/20 hover:border-accent/40 transition-all text-[14px] font-medium tracking-tight"
+                className="text-left px-4 py-3 bg-accent border border-accent/20 hover:bg-bg-secondary/20 hover:border-accent/40 transition-all text-[14px] font-medium tracking-tight"
                 style={{ borderRadius: '0' }}
               >
                 {prompt}
