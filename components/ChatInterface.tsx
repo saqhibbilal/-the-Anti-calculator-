@@ -27,9 +27,10 @@ export default function ChatInterface({ scenario }: ChatInterfaceProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: scenario === 'buy-vs-rent' 
-        ? "Marhaba! 👋 Welcome to your friendly neighborhood property advisor (minus the awkward small talk at the coffee shop).\n\nI'm here to help you figure out whether buying or renting makes more sense for your situation. Think of me as that friend who actually understands mortgages and won't judge you for asking 'dumb' questions.\n\nSo, what's on your mind? Are you eyeing a place in Dubai Marina? Thinking about JLT? Or just curious if your salary can handle that dream apartment? Tell me what you're working with!"
-        : "Marhaba! 👋 Ready to see if refinancing your mortgage is actually worth the hassle (and those pesky switching fees)?\n\nI'm here to do the math so you don't have to. No judgment, no sales pitch—just honest numbers about whether switching will save you money or just give you a headache.\n\nWhat's your current situation? Let's see if refinancing makes sense for you!"
+      content:
+        scenario === 'buy-vs-rent'
+          ? 'Marhaba. I can help you decide buy vs rent in the UAE. Share property price, down payment, monthly rent, and how many years you plan to stay.'
+          : 'Marhaba. I can help you check if refinancing makes sense. Share loan amount, current rate, new rate, remaining years, and switching costs.',
     }
   ])
   const [input, setInput] = useState('')
@@ -146,7 +147,7 @@ export default function ChatInterface({ scenario }: ChatInterfaceProps) {
         updated.pop()
         updated.push({
           role: 'assistant',
-          content: "I'm sorry, I encountered an error. Please try again or check your connection.",
+          content: "I’m having trouble reaching the assistant right now. Please check your connection or try again shortly.",
         })
         return updated
       })
@@ -157,7 +158,7 @@ export default function ChatInterface({ scenario }: ChatInterfaceProps) {
   return (
     <div className="min-h-screen flex flex-col bg-bg-primary">
       {/* Header */}
-      <header className="border-b border-accent/10 px-8 py-5">
+      <header className="sticky top-0 z-20 border-b border-accent/10 px-8 py-5 bg-bg-primary">
         <h1 className="text-2xl font-bold tracking-tight">ANTI - CALCULATOR</h1>
       </header>
 
@@ -198,7 +199,7 @@ export default function ChatInterface({ scenario }: ChatInterfaceProps) {
       </div>
 
       {/* Input */}
-      <div className="border-t border-accent/10 px-8 py-6 bg-bg-primary">
+      <div className="sticky bottom-0 z-20 border-t border-accent/10 px-8 py-6 bg-bg-primary">
         <form onSubmit={handleSubmit} className="max-w-4xl mx-auto">
           <div className="flex gap-4 items-end">
             <textarea

@@ -62,21 +62,22 @@ export function getAvailableTools(scenario: 'buy-vs-rent' | 'refinance-check'): 
         type: 'function',
         function: {
           name: 'calculate_mortgage',
-          description: 'Calculate mortgage details including EMI, loan amount, down payment, and upfront costs. Use this when you have property price and optionally down payment and tenure.',
+          description:
+            'Calculate mortgage details (loan amount, LTV, EMI, upfront costs). Call this whenever the user mentions a property price. Inputs: propertyPrice (required), downPayment (optional, AED), tenure (optional, years). Example: { "propertyPrice": 1500000, "downPayment": 300000, "tenure": 25 }',
           parameters: {
             type: 'object',
             properties: {
               propertyPrice: {
                 type: 'number',
-                description: 'The price of the property in AED',
+                description: 'The price of the property in AED (required)',
               },
               downPayment: {
                 type: 'number',
-                description: 'Down payment amount in AED (optional, will default to 20% minimum)',
+                description: 'Down payment amount in AED (optional; default minimum is 20%)',
               },
               tenure: {
                 type: 'number',
-                description: 'Loan tenure in years (optional, defaults to 25 years max)',
+                description: 'Loan tenure in years (optional; max 25)',
               },
             },
             required: ['propertyPrice'],
@@ -87,17 +88,18 @@ export function getAvailableTools(scenario: 'buy-vs-rent' | 'refinance-check'): 
         type: 'function',
         function: {
           name: 'analyze_buy_vs_rent',
-          description: 'Compare buying vs renting and provide a recommendation based on stay duration, monthly rent, and property details.',
+          description:
+            'Compare buying vs renting and return a recommendation. Call this when you have propertyPrice, monthlyRent, and stayDuration. Optional: downPayment, tenure. Example: { "propertyPrice": 1500000, "monthlyRent": 8000, "stayDuration": 5, "downPayment": 300000, "tenure": 25 }',
           parameters: {
             type: 'object',
             properties: {
               propertyPrice: {
                 type: 'number',
-                description: 'The price of the property in AED',
+                description: 'The price of the property in AED (required)',
               },
               monthlyRent: {
                 type: 'number',
-                description: 'Current monthly rent in AED',
+                description: 'Current monthly rent in AED (required)',
               },
               downPayment: {
                 type: 'number',
@@ -105,7 +107,7 @@ export function getAvailableTools(scenario: 'buy-vs-rent' | 'refinance-check'): 
               },
               stayDuration: {
                 type: 'number',
-                description: 'How long the user plans to stay in the UAE (in years)',
+                description: 'How long the user plans to stay in the UAE (years, required)',
               },
               tenure: {
                 type: 'number',
@@ -124,7 +126,8 @@ export function getAvailableTools(scenario: 'buy-vs-rent' | 'refinance-check'): 
         type: 'function',
         function: {
           name: 'calculate_refinance',
-          description: 'Calculate if refinancing is worth it by comparing current mortgage costs with new mortgage costs including switching fees.',
+          description:
+            'Calculate if refinancing is worth it by comparing current EMI vs new EMI and switching costs. Call when user provides currentLoanAmount, currentInterestRate, currentTenure, newInterestRate, switchingCosts.',
           parameters: {
             type: 'object',
             properties: {
@@ -162,54 +165,36 @@ export function getAvailableTools(scenario: 'buy-vs-rent' | 'refinance-check'): 
  */
 export function getSystemPrompt(scenario: 'buy-vs-rent' | 'refinance-check'): string {
   if (scenario === 'buy-vs-rent') {
-    return `You are a friendly, empathetic financial advisor helping UAE homebuyers decide whether to buy or rent a property. You have a warm, engaging personality with a touch of humor—think of yourself as that smart friend who knows about mortgages but won't bore you to death.
+    return `You are a precise UAE mortgage assistant. Follow ONLY the provided primitives. No extra banking rules, no DTI, no job stability advice, no guesses.
 
-Your personality:
-- Warm and welcoming (use "Marhaba" occasionally, but don't overdo it)
-- Conversational and relatable—speak like you're chatting with a friend over karak
-- Light humor when appropriate (keep it professional and ethical)
-- Empathetic—understand that buying a home is a big decision and can be stressful
-- Clear and direct—no financial jargon without explanation
+Primitives (fixed):
+- Max LTV: 80% (min 20% down)
+- Upfront costs: 7% of property price
+- Interest: 4.5% annual
+- Max tenure: 25 years
+- Buy vs rent heuristic: stay <3 years → rent, >5 years → buy, else present both
 
-Your role:
-- Act like a "smart friend" - be conversational, understanding, and helpful
-- Extract key information from vague user messages (property price, income, down payment, tenure, current rent, stay duration)
-- Ask for missing information naturally, not like a robotic survey. Make it feel like a conversation
-- Use the provided tools to calculate accurate mortgage details
-- Explain financial concepts in simple, relatable terms (e.g., "That 7% upfront cost? Yeah, that's like buying a nice car before you even get the keys")
-- Warn users about hidden costs (7% upfront fees) in a friendly way
-- Provide clear, personalized recommendations with reasoning
+Tool usage (mandatory):
+- If user provides or implies property price, rent, stay duration, down payment, or tenure, call the appropriate tool. Never compute manually, never assume.
+- Use calculate_mortgage when propertyPrice is provided (optional downPayment, tenure).
+- Use analyze_buy_vs_rent when propertyPrice, monthlyRent, stayDuration are provided (optional downPayment, tenure).
+- If parameters are missing, ask briefly for the missing ones, then call the tool.
 
-UAE Mortgage Rules (CRITICAL - these are fixed):
-- Maximum LTV: 80% (minimum 20% down payment)
-- Upfront costs: 7% of property price (4% transfer fee + 2% agency fee + 1% misc)
-- Standard interest rate: 4.5% annual
-- Maximum tenure: 25 years
-
-Buy vs Rent Logic:
-- Stay < 3 years: Recommend renting (transaction costs too high)
-- Stay > 5 years: Recommend buying (equity buildup)
-- 3-5 years: Show both options, let user decide
-
-Always use the calculation tools - NEVER guess or estimate numbers. Be accurate and trustworthy. Keep responses engaging but professional.`
+Style:
+- No jokes, no emojis, no metaphors, no personality.
+- No markdown formatting (no bold/italics/headings/bullets) unless explicitly asked.
+- Be concise, direct, and factual.`
   } else {
-    return `You are a friendly, empathetic financial advisor helping UAE homeowners evaluate mortgage refinancing options. You have a warm, engaging personality with a touch of humor—think of yourself as that smart friend who actually understands refinancing.
+    return `You are a precise UAE refinancing assistant. Use only the provided primitives. No extra banking rules, no DTI, no job stability advice, no guesses.
 
-Your personality:
-- Warm and welcoming (use "Marhaba" occasionally, but don't overdo it)
-- Conversational and relatable—speak like you're chatting with a friend
-- Light humor when appropriate (keep it professional and ethical)
-- Empathetic—understand that refinancing decisions can be confusing
-- Clear and direct—explain break-even points and savings in simple terms
+Tool usage (mandatory):
+- If user mentions loan amount, current rate, new rate, tenure, or switching costs, call calculate_refinance. Never compute manually.
+- If parameters are missing, ask briefly for the missing ones, then call the tool.
 
-Your role:
-- Act like a "smart friend" - be conversational, understanding, and helpful
-- Extract key information about their current mortgage and the new offer naturally
-- Calculate if refinancing makes financial sense considering switching costs
-- Explain the break-even point and long-term savings in relatable terms
-- Help users make informed decisions without being pushy
-
-Always use the calculation tools - NEVER guess or estimate numbers. Be accurate and trustworthy. Keep responses engaging but professional.`
+Style:
+- No jokes, no emojis, no metaphors, no personality.
+- No markdown formatting (no bold/italics/headings/bullets) unless explicitly asked.
+- Be concise, direct, and factual.`
   }
 }
 

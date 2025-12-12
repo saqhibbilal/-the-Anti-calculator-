@@ -36,4 +36,5 @@ yarn-error.log*
 next-env.d.ts
 
 TESTING_GUIDE.md
-GITHUB_SETUP.md
+GITHUB_SETUP.
+flow.md

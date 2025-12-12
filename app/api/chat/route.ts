@@ -13,6 +13,7 @@ import {
   type MortgageInputs,
   type BuyVsRentInputs,
 } from '@/lib/math'
+import { extractParameters } from '@/lib/extractors'
 
 // In-memory conversation state (in production, use database)
 const conversationStates = new Map<string, {
@@ -20,6 +21,8 @@ const conversationStates = new Map<string, {
   scenario: 'buy-vs-rent' | 'refinance-check'
   extractedData: Record<string, any>
 }>()
+
+const CONTEXT_WINDOW = 10
 
 /**
  * Execute tool/function call
@@ -32,6 +35,9 @@ function executeToolCall(
   try {
     switch (toolName) {
       case 'calculate_mortgage': {
+        if (!args.propertyPrice || args.propertyPrice <= 0) {
+          return { error: 'propertyPrice is required and must be > 0' }
+        }
         const inputs: MortgageInputs = {
           propertyPrice: args.propertyPrice,
           downPayment: args.downPayment,
@@ -41,6 +47,9 @@ function executeToolCall(
       }
 
       case 'analyze_buy_vs_rent': {
+        if (!args.propertyPrice || !args.monthlyRent || !args.stayDuration) {
+          return { error: 'propertyPrice, monthlyRent, and stayDuration are required' }
+        }
         const inputs: BuyVsRentInputs = {
           propertyPrice: args.propertyPrice,
           monthlyRent: args.monthlyRent,
@@ -81,6 +90,21 @@ function executeToolCall(
   }
 }
 
+function buildContextMessages(state: { messages: MistralMessage[] }): MistralMessage[] {
+  if (state.messages.length <= CONTEXT_WINDOW + 1) return state.messages
+  const system = state.messages[0]
+  let recent = state.messages.slice(-CONTEXT_WINDOW)
+
+  // Ensure the first message after system is not a tool; if it is, pull one more from history until fixed
+  let idx = state.messages.length - CONTEXT_WINDOW - 1
+  while (recent[0]?.role === 'tool' && idx >= 1) {
+    recent = state.messages.slice(idx, state.messages.length)
+    idx -= 1
+  }
+
+  return [system, ...recent]
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { message, sessionId, scenario } = await request.json()
@@ -116,6 +140,10 @@ export async function POST(request: NextRequest) {
       content: message,
     })
 
+    // Extract parameters from user message and merge
+    const extracted = extractParameters(message)
+    Object.assign(state.extractedData, extracted)
+
     // Get tools for scenario
     const tools = getAvailableTools(scenario)
 
@@ -125,7 +153,16 @@ export async function POST(request: NextRequest) {
       async start(controller) {
         try {
           // First, make a non-streaming call to check for tool calls
-          const initialResponse = await callMistralAPI(state.messages, tools, apiKey, false)
+          let initialResponse
+          try {
+            initialResponse = await callMistralAPI(buildContextMessages(state), tools, apiKey, false)
+          } catch (err) {
+            console.error('Mistral initial call failed:', err)
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: "I'm having trouble reaching the assistant. Please try again in a moment." })}\n\n`))
+            controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+            controller.close()
+            return
+          }
           
           // Type guard: with stream=false, we should get MistralResponse
           if (initialResponse instanceof ReadableStream) {
@@ -139,6 +176,13 @@ export async function POST(request: NextRequest) {
 
           // Check if we have tool calls
           if (assistantMessage?.tool_calls && assistantMessage.tool_calls.length > 0) {
+            // Add assistant message with tool calls first (correct ordering)
+            state.messages.push({
+              role: 'assistant',
+              content: assistantMessage.content || '',
+              tool_calls: assistantMessage.tool_calls,
+            })
+
             // Execute all tool calls
             for (const toolCall of assistantMessage.tool_calls) {
               try {
@@ -167,15 +211,17 @@ export async function POST(request: NextRequest) {
               }
             }
 
-            // Add assistant message with tool calls to state
-            state.messages.push({
-              role: 'assistant',
-              content: assistantMessage.content || '',
-              tool_calls: assistantMessage.tool_calls,
-            })
-
             // Get final response after tool execution (with streaming)
-            const finalResponse = await callMistralAPI(state.messages, tools, apiKey, true)
+            let finalResponse
+            try {
+              finalResponse = await callMistralAPI(buildContextMessages(state), tools, apiKey, true)
+            } catch (err) {
+              console.error('Mistral final call failed:', err)
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: "The assistant hit a snag while calculating. Please rephrase or try again." })}\n\n`))
+              controller.enqueue(encoder.encode('data: [DONE]\n\n'))
+              controller.close()
+              return
+            }
             if (finalResponse instanceof ReadableStream) {
               for await (const chunk of parseMistralStream(finalResponse)) {
                 fullResponse += chunk
